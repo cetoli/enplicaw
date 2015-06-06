@@ -1,4 +1,5 @@
 # enplicaw
+
 <div id="sheet" style="border: 1px solid black; padding: 20px; box-shadow: 10px 10px 5px grey; width:800px;">
     <table border="0" cellpadding="10" cellspacing="1" height="50" width="100%">
         <tbody>
@@ -105,5 +106,3 @@
     
     <p style="text-align: center;">Copyleft 2015 Carlo E. T. Oliveira</p>
 </div>
-
-
