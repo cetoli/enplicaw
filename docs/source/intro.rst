@@ -22,7 +22,7 @@ Enplicaw - Introdução
     <div style="background-color: whitesmoke; padding: 20px;  border-radius:20px; -moz-border-radius:20px; box-shadow: 2px 2px 2px grey; ">
     <h2>Overview</h2>
 
-    <p>A wisard like weightless Neural networkvariant to process neuropedagogic data.</p>
+    <p>A wisard like weightless neural network variant to process neuropedagogic data.</p>
 
     <p>Produces a Likert scaled form to collect data and classify information.</p>
 
@@ -68,7 +68,7 @@ Enplicaw - Introdução
 
     <h2>Executable Application</h2>
 
-    <p><a href="http://j.mp/em_obras" target="_blank"><img alt="" src="https://dl.dropboxusercontent.com/u/1751704/igames/img/superp%C3%BDthon.jpg" style="width: 368px; height: 276px;" /></a></p>
+    <p><a href="http://enplicaw.appspot.com/" target="_blank"><img alt="" src="https://dl.dropboxusercontent.com/u/1751704/igames/img/superp%C3%BDthon.jpg" style="width: 368px; height: 276px;" /></a></p>
 
     <h2>Development team</h2>
 

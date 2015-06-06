@@ -6,23 +6,17 @@
     <link rel="stylesheet" href="style.css" type="text/css" />
 </head>
 <body>
-    <h1>Resultado do Jogo das Carinhas</h1>
-    <h2>Usuário: {{user}}</h2>
+    <h1>Resultado da Enquete Superpython</h1>
     <table id="box-table-a" >
 
         <thead>
             <tr>
-                <th scope="col"><span>Cara</span></th>
+                <th scope="col"><span>Questão</span></th>
+                % for item in columns:
 
-                <th scope="col"><span>Casa</span></th>
+                    <th scope="col"><span>{{ item }}</span></th>
 
-                <th scope="col"><span>Movimento</span></th>
-
-                <th scope="col"><span>Pontos</span></th>
-
-                <th scope="col"><span>Tempo</span></th>
-
-                <th scope="col"><span>Resultado</span></th>
+                % end
 
             </tr>
         </thead>
@@ -31,16 +25,17 @@
         <tbody>
             % for line in result:
             <tr>
-                <td><span>{{ line["carta"] }}</span></td>
-                <td><span>{{ line["casa"] }}</span></td>
-                <td><span>{{ line["move"] }}</span></td>
-                <td><span>{{ line["ponto"] }}</span></td>
-                <td><span>{{ line["tempo"] }}</span></td>
-                <td><span>{{ line["valor"] }}</span></td>
-            </tr>
+                <td><span>{{ line.label }}</span></td>
+                % for item in line.value:
+
+                    <td scope="col"><span>{{ item }}</span></td>
+
+                % end
+           </tr>
             % end
         </tbody>
 
     </table>
+{{ data }}
 </body>
 </html>
