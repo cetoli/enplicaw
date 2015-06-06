@@ -1,6 +1,4 @@
 # enplicaw
-A variant of the weightless neural network wisard
-
 <div id="sheet" style="border: 1px solid black; padding: 20px; box-shadow: 10px 10px 5px grey; width:800px;">
     <table border="0" cellpadding="10" cellspacing="1" height="50" width="100%">
         <tbody>
@@ -18,7 +16,7 @@ A variant of the weightless neural network wisard
     <div style="background-color: whitesmoke; padding: 20px;  border-radius:20px; -moz-border-radius:20px; box-shadow: 2px 2px 2px grey; ">
     <h2>Overview</h2>
     
-    <p>A wisard like weightless neural network variant to process neuropedagogic data.</p>
+    <p>A wisard like weightless Neural networkvariant to process neuropedagogic data.</p>
     
     <p>Produces a Likert scaled form to collect data and classify information.</p>
     
