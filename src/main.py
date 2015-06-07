@@ -26,13 +26,14 @@ from lib import bottle
 from lib.bottle import Bottle, view, request, response
 # name and list your controllers here so their routes become accessible.
 from server.controllers import main_controller
+from server.models.ndbstore import Session
 import collections
 LIKERT = "nunca pouquíssimo pouco mediano muito muitíssimo sempre".split()
 Item = collections.namedtuple('Item', 'label value')
 Likert = collections.namedtuple('Item', 'label name value')
 TITLE = "Habilidades de Alunos - %s"
 PICTURE = "https://dl.dropboxusercontent.com/u/1751704/igames/img/superp%C3%BDthon.jpg"
-PROJECTS = "jardim spy super geo".split()
+PROJECTS = "JardimBotanico SuperPlataforma SuperPython MuseuGeo".split()
 QNAME = "q%02d"
 # Enable debugging, which gives us tracebacks
 bottle.DEBUG = True
@@ -73,6 +74,7 @@ def identify():
     project = "SuperPython"
     user = request.forms.get('name')
     school = request.forms.get('school')
+    Session.instance(project, user, school, QUESTION)
     response.set_cookie('_enplicaw_project_', "%s %s %s" % (project, user, school))
 
     survey = [Likert(label=question, name=qname, value=LIKERT) for qname, question in QUESTION]
@@ -84,9 +86,13 @@ def _points():
     project = "SuperPython"
     data = {a: b for a, b in request.POST.items()}
     cookie = request.get_cookie('_enplicaw_project_')
+    _, author, _ = cookie.split()
+    surveydata = {q: LIKERT.index(value)+1 for q, value in data.items() if q in QITEM}
     [DATA[q].update({data[q]:DATA[q][data[q]]+1}) for q in data.keys() if q in QITEM]
     PLOT[data["name"]] = [LIKERT.index(data[key])+1 if key in data.keys() else 0
                           for key in QITEM]+["ns".index(data["super"])]+[cookie]
+    Session.post(name=data["name"], classifier=data["super"],
+                 data=surveydata, session=Session.instance(project=project, author=author))
     print(PLOT)
     return data
 
