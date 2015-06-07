@@ -8,7 +8,7 @@
 <body>
     <h1>Enquete do projeto {{ title }}</h1>
     <form action="survey" method="post">
-    <table id="box-table-a" style="width: 800px;">
+    <table id="box-table-a" style="width: 750px;">
 
         <thead>
             <tr>
@@ -20,24 +20,22 @@
         </thead>
         <tbody>
             <tr>
-                <td colspan="2"><span>Nome do Estudante:</span></td>
-                <td colspan="{{ columns - 4}}">
+                <td colspan="8"><span>Nome do Estudante:</span>
                     <input type="text" name="name" size="40"></input>
-                </td>
-                <td colspan="3"><span>Superdotado:</span>
+                    <span>Superdotado:</span>
                     <input type="radio" name="super" value="s">Sim</input>
                     <input type="radio" name="super" value="n" checked>Não</input>
                 </td>
            </tr>
             % for question in survey:
             <tr>
-                <td><span>{{ question.name }}</span></td>
+                <td style='width:"70px;"'><span>{{ question.name }}</span></td>
                 <td colspan="{{ columns }}"><span>{{ question.label }}</span></td>
            </tr>
             <tr>
-                <td><span></span></td>
+                <td style='width:"70px;"'><span></span></td>
                 % for answer in question.value:
-                <td><span><input type="radio" name="{{ question.name }}" value="{{ answer }}">{{ answer }}</input></span></td>
+                <td style='width:"142px;"'><span><input type="radio" name="{{ question.name }}" value="{{ answer }}">{{ answer }}</input></span></td>
                 % end
             </tr>
             % end

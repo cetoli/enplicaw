@@ -4,7 +4,7 @@
 Enplicaw - Módulos Principais
 #############################
 
-.. automodule:: client.enplicaw.core
+.. automodule:: lib.enplicaw.core
     :members:
     :undoc-members:
     :show-inheritance:
@@ -14,7 +14,7 @@ Enplicaw - Módulos Principais
 
 .. seealso::
 
-   Module :mod:`client.enplicaw.core`
+   Module :mod:`lib.enplicaw.core`
 
 .. note::
    Unidade de Modelo Cliente.
@@ -25,7 +25,7 @@ Enplicaw - Módulos Principais
     :undoc-members:
     :show-inheritance:
     :platform: Web
-    :synopsis: A variant of the weightless neural network wisard.
+    :synopsis: Handles http requests.
 
 
 .. seealso::
@@ -41,7 +41,7 @@ Enplicaw - Módulos Principais
     :undoc-members:
     :show-inheritance:
     :platform: Web
-    :synopsis: A variant of the weightless neural network wisard.
+    :synopsis: Handles requests.
 
 
 .. seealso::
