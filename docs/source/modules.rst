@@ -4,21 +4,11 @@
 Enplicaw - Módulos Principais
 #############################
 
-.. automodule:: lib.enplicaw.core
-    :members:
-    :undoc-members:
-    :show-inheritance:
-    :platform: Web
-    :synopsis: A variant of the weightless neural network wisard.
-    
 
-.. seealso::
+.. _main_ctl:
 
-   Module :mod:`lib.enplicaw.core`
-
-.. note::
-   Unidade de Modelo Cliente.
-
+An Http Server main handler
+===========================
 
 .. automodule:: server.controllers.main_controller
     :members:
@@ -33,15 +23,41 @@ Enplicaw - Módulos Principais
    Module :mod:`server.controllers.main_controller`
 
 .. note::
-   Unidade de Modelo Servidor.
+   Unidade de Controle Servidor.
 
 
-.. automodule:: main
+.. _enplicaw:
+
+An implementaion of Weightless Neural Netwok
+============================================
+
+.. automodule:: server.models.enplicaw.core
     :members:
     :undoc-members:
     :show-inheritance:
     :platform: Web
-    :synopsis: Handles requests.
+    :synopsis: Library implementing a variant of weightless neural network.
+
+
+.. seealso::
+
+   Module :mod:`main`
+
+.. note::
+   Unidade de Modelo Servidor.
+
+
+.. ndbstore:
+
+An implementaion Google Databese Store Model
+============================================
+
+.. automodule:: server.models.ndbstore
+    :members:
+    :undoc-members:
+    :show-inheritance:
+    :platform: Web
+    :synopsis: Implements the Google Datastore Model.
 
 
 .. seealso::

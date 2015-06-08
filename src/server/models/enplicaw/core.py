@@ -23,6 +23,7 @@
 
 """
 from random import shuffle
+
 __author__ = 'carlo'
 RND = 3141
 SBLEACH = 3
@@ -31,21 +32,19 @@ IBLEACH = 1
 
 
 def tupler(x):
-    return [(bit,)+tup for bit in (0, 1) for tup in tupler(x-1)] if x else [(0,), (1,)]
+    return [(bit,) + tup for bit in (0, 1) for tup in tupler(x - 1)] if x else [(0,), (1,)]
 
 
 class Cortex:
-    """Neuron cortex with a collection of RAM nodes. :ref:`cortex`
+    """Neuron cortex with a collection of RAM nodes. :ref:`enplicaw`
 
     :param retinasize: dimension in pixels of the retina.
     :param bleach: bleaching factor at classify stage.
     :param ramorder: number of bits of the RAM address.
     """
-    def __init__(self, retinasize=3*4, bleach=0, ramorder=2):
-        """
-        """
-        # self.cortex = [{t: 0 for t in tupler(ramorder-1)} for _ in range(retinasize//2)]
-        self.cortex = [{(a, b): 0 for a in [0, 1] for b in [0, 1]} for _ in range(retinasize//2)]
+
+    def __init__(self, retinasize=3 * 4, bleach=0, ramorder=2):
+        self.cortex = [{(a, b): 0 for a in [0, 1] for b in [0, 1]} for _ in range(retinasize // 2)]
         self.bleach = bleach
 
     def learn(self, retina, offset=1):
@@ -55,11 +54,10 @@ class Cortex:
         :param offset: ammount of offset to be added to RAM node at learning.
         """
         def updater(ram, index):
-            return {index: self.cortex[ram][index]+offset}
-        # print(len(retina)//2)
-        x = len(retina)
+            return {index: self.cortex[ram][index] + offset}
+        fixedretinasize = len(retina)
         [self.cortex[ram].update(updater(ram, (retina.pop(RND % len(retina)), retina.pop(RND % len(retina)))))
-         for ram in range(x//2)]
+         for ram in range(fixedretinasize // 2)]
         # print(self.cortex)
 
     def classify(self, retina):
@@ -68,14 +66,22 @@ class Cortex:
         :param retina: retina pixel vector to be classified.
         :return: vector of responding RAM node values.
         """
-        x = (len(retina)//2)
-        return ([self.cortex[ram][(retina.pop(RND % len(retina)), retina.pop(RND % len(retina)))]-self.bleach
-                for ram in range(x)])
+        retinasize = (len(retina) // 2)
+        return ([self.cortex[ram][(retina.pop(RND % len(retina)), retina.pop(RND % len(retina)))] - self.bleach
+                 for ram in range(retinasize)])
 
 
 class Lobe:
-    """Rede neural sem peso. :ref:`lobe`
+    """Rede neural sem peso. :ref:`enplicaw`
+
+    :param data: input data stream.
+    :param topvalue: the largest value of any data.
+    :param factor: retina reduction factor to speed up processing.
+    :param ramorder: number obits adressing the RAM.
+    :param enforce_supress: tuple with one value to offset leraning and a negative to suppress.
+    :param bleach: dictionary of bleaches {classkey: bleach_value}
     """
+
     def __init__(self, data, topvalue, factor=1, ramorder=2, enforce_supress=(1, 0), bleach={k: 0 for k in range(6)}):
         self.retinasize, self.data = self.retinify(data, topvalue, factor)
         self.l, self.m, self.n = range(len(self.data))[::-1], range(len(self.data[0][0])), range(len(self.data[0]))
@@ -83,35 +89,52 @@ class Lobe:
         self.cortex = {key: Cortex(self.retinasize, bleacher) for key, bleacher in bleach.items()}
         self.enforce, self.supress = enforce_supress
         self.bleach = bleach
-        self.cortex_keys = sorted(k for k in bleach.keys())
-        self.classifiers = [[[self.data[i][j][k] for k in m] for i in l] for j in n]
+        self.cortex_keys = sorted(class_key for class_key in bleach.keys())
+        self.sample_entries = [[[self.data[i][j][k] for k in m] for i in l] for j in n]
 
     @classmethod
-    def retinify(cls, retina, topvalue, factor=1):
-        zfactor = 2*factor
-        TOP = topvalue//factor
-        BDATA = {i: [[([0]*(1*(j//zfactor)))+([1]*(j//zfactor))+([0]*(TOP-(2*(j//zfactor))))
-                      for j in k] for k in d] for i, d in sorted(retina.items())}
-        RS = (sum(1 for j in BDATA[0][0] for i in j))
-        return RS, BDATA
+    def retinify(cls, histogram_data, topvalue, factor=1):
+        """ Formats a histogram into a histogram_data format. :class:`lib.enplicaw.core.Lobe`
+
+        :param histogram_data: input data stream.
+        :param topvalue: the largest value of any data.
+        :param factor: retina reduction factor to speed up processing.
+        :return: the size of the final histogram data and the histogram_data itself.
+        """
+        zfactor = 2 * factor
+        TOP = topvalue // factor
+        retinadata = {i: [[([0] * (1 * (j // zfactor))) + ([1] * (j // zfactor)) + ([0] * (TOP - (2 * (j // zfactor))))
+                      for j in k] for k in d] for i, d in sorted(histogram_data.items())}
+        retinasize = (sum(1 for j in retinadata[0][0] for i in j))
+        return retinasize, retinadata
 
     def samplelearn(self, samplesize):
-        def doshuffle(dt):
-            # shuffle(dt)
-            return dt[:samplesize]
-        data = self.classifiers[:samplesize]
+        """ Extract a sample of retina data for learning. :class:`lib.enplicaw.core.Lobe`
+
+        :param samplesize: The amount of retinas to sample.
+        :return:
+        """
+        data = self.sample_entries[:samplesize]
         self.learn(data)
 
     def learn(self, retinadata):
-            enf, sup, keys = self.enforce, self.supress, self.cortex_keys
-            [self.cortex[2-key].learn([i for j in retina for i in j],
-                                      offset=enf if key == learnkey else sup)for retini in retinadata
-             for key in keys for learnkey, retina in enumerate(retini)]
+        """Learn patterns from a collection of retinas. :class:`lib.enplicaw.core.Lobe`
+
+        :param retinadata: collection of retinas.
+        """
+        enf, sup, keys = self.enforce, self.supress, self.cortex_keys
+        [self.cortex[2 - key].learn([i for j in retina for i in j],
+                                    offset=enf if key == learnkey else sup) for retini in retinadata
+         for key in keys for learnkey, retina in enumerate(retini)]
 
     def classifynlearn(self):
+        """Classifies a batch of retina data, and attempt to online leanr from the best. :class:`lib.enplicaw.core.Lobe`
+
+        :return: a colection of tuples of votes given from each discriminator.
+        """
         def discriminate(retina, key):
-            votes = sorted([(sum(self.cortex[2-key].classify([i for j in retina for i in j])), key) for key in keys])
-            confidence = (votes[-1][0]-max(0, votes[-2][0]))/(abs(votes[-1][0])+0.001)
+            votes = sorted([(sum(self.cortex[2 - key].classify([i for j in retina for i in j])), key) for key in keys])
+            confidence = (votes[-1][0] - max(0, votes[-2][0])) / (abs(votes[-1][0]) + 0.001)
             if max(votes)[1] != key:
                 print(votes, confidence, 'become', max(votes)[1], 'but was', key)
             else:
@@ -120,47 +143,54 @@ class Lobe:
             if confidence > CONFIDENCE:
                 self.cortex[votes[-1][1]].learn([i for j in retina for i in j], offset=self.enforce)
             return votes
+
         keys = self.cortex_keys
-        return [
-            [
-                discriminate(retina, key) for key, retina in enumerate(retini)
-                ] for retini in self.classifiers]
+        return [[discriminate(retina, key) for key, retina in enumerate(retini)] for retini in self.sample_entries]
 
     def classify(self):
+        """ A simple classification routine. :class:`lib.enplicaw.core.Lobe`
+
+        :return: a colection of tuples of votes given from each discriminator.
+        """
         keys = self.cortex_keys
-        return [
-            [
-                sorted([
-                    (sum(self.cortex[2-key].classify([i for j in retina for i in j])), key)
-                    for key in keys]) for retina in retini
-                ] for retini in self.classifiers]
+        return [[
+                sorted([(sum(self.cortex[2 - key].classify([i for j in retina for i in j])), key)
+                        for key in keys]) for retina in retini
+                ] for retini in self.sample_entries]
 
     def results(self):
+        """ Compile confidences, hitsample lists. :class:`lib.enplicaw.core.Lobe`
+
+        :return: accuracy performance in hits/total.
+        """
         self.samplelearn(SAMPLESIZE)
-        cls = self.classifynlearn()
-        confidences = [[(tup[-1][1], 100*(tup[-1][0] - tup[-2][0])//(abs(tup[-1][0])+0.01))
-                        for tup in triade] for triade in cls]
+        classifications = self.classifynlearn()
+        confidences = [[(tup[-1][1], 100 * (tup[-1][0] - tup[-2][0]) // (abs(tup[-1][0]) + 0.01))
+                        for tup in triade] for triade in classifications]
         hitsamples = [[1 if clsd[0] == real else 0 for clsd, real in zip(cl, (0, 1, 2))] for cl in confidences]
-        sscls = sum(1 for cl in confidences for clsd, real in zip(cl, (0, 1, 2)) if clsd[0] == real)
-        print([sum(c[k][1] for c in confidences)/len(confidences) for k in range(3)],
-              [100*sum(tr)//(len(hitsamples))for tr in zip(*hitsamples)])
-        return 100*sscls//(len(hitsamples)*3)
+        total_hits = sum(1 for cl in confidences for clsd, real in zip(cl, (0, 1, 2)) if clsd[0] == real)
+        print([sum(c[k][1] for c in confidences) / len(confidences) for k in range(3)],
+              [100 * sum(tr) // (len(hitsamples)) for tr in zip(*hitsamples)])
+        return 100 * total_hits // (len(hitsamples) * 3)
 
 
 def main(data, sample=1):
+    """ Main task, runs, leaning, classification, and report results. :class:`lib.enplicaw.core.Lobe`
+
+    :param data: input data stream with all samples formatted as values tuples.
+    :param sample: ammount of times that whole cicly will run.
+    :return:
+    """
     from time import time
-    # RETINASIZE, retinadict = Lobe.retinify(data, 100, factor=4)
     lobe = Lobe(data, 100, factor=4, enforce_supress=ENFSUP, bleach=BLEACH)
-    # print(result)
     timer = time()
     acc = [lobe.results() for _ in range(sample)]
-    print("min: %d, max: %d, average; %d, elapset time %f" % (min(acc), max(acc), sum(acc)//sample, time()-timer))
+    print("min: %d, max: %d, average; %d, elapset time %f" % (min(acc), max(acc), sum(acc) // sample, time() - timer))
+
+
 CONFIDENCE = 2
 SAMPLESIZE = 3
 ENFSUP = (20, 0)
-BLEACH = {0: 3, 1: 3, 2: 3}
-BLEACH = {0: 1, 1: 1, 2: 1}
-#BLEACH = {0: 56, 1: 56, 2: 56}
 BLEACH = {0: 150, 1: 150, 2: 150}
 DATA = '''
 5.1,3.5,1.4,0.2,Iris-setosa
@@ -316,9 +346,8 @@ DATA = '''
 '''.split()
 MAP = {"Iris-virginica": 0, "Iris-versicolor": 1, "Iris-setosa": 2}
 SDATA = {0: [], 1: [], 2: []}
-[SDATA[MAP[r.split(",")[-1]]].append([int(float(d)*10)
- for d in r.split(",")[:-1]]) for r in DATA]
-print(SDATA)
+[SDATA[MAP[r.split(",")[-1]]].append([int(float(d) * 10)
+                                      for d in r.split(",")[:-1]]) for r in DATA]
 
 if __name__ == '__main__':
     main(SDATA)

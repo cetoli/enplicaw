@@ -24,12 +24,19 @@
 """
 __author__ = 'carlo'
 # Imports the NDB data modeling API
-import os, sys
+import os
+import sys
+
 if "AUTH_DOMAIN" in os.environ.keys():
     from google.appengine.ext import ndb
 else:
-    import mock
-    sys.modules['google.appengine.ext'] = mock.Mock()
+    if sys.version_info[0] == 2:
+        from mock import MagicMock
+        sys.modules['google.appengine.ext'] = MagicMock()
+    else:
+        from unittest.mock import MagicMock
+        sys.modules['google.appengine.ext'] = MagicMock()
+
 # import googledatastore as ndb
 
 DEFAULT_PROJECTS = "DEFAULT_PROJECTS"
@@ -60,6 +67,7 @@ class Projects(ndb.Expando):
             prj = cls.query(cls.name == name).fetch()
             print("prj", prj)
             cls._projects = prj[0] if prj else cls._start(name=name, names=names)
+
         return cls._projects or get_project()
 
     @classmethod
@@ -247,7 +255,7 @@ class Session(ndb.Expando):
             return prj.questions
         oquestions = [
             Question.create(name=key, text=value) for key, value in questions
-        ]
+            ]
         print(oquestions)
         prj.populated = True
         prj.questions = oquestions
