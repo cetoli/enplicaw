@@ -227,7 +227,7 @@ class Session(ndb.Expando):
     @classmethod
     def instance(cls, project, author, school=None, questions=None):
         if cls._session and cls._session.check(project=project, name=author):
-            print (cls._session, cls._session.updated)
+            print(cls._session, cls._session.updated)
             cls._session.updated += 1
             cls._session.put()
             return cls._session
