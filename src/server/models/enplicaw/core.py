@@ -60,7 +60,7 @@ class Cortex:
         x = len(retina)
         [self.cortex[ram].update(updater(ram, (retina.pop(RND % len(retina)), retina.pop(RND % len(retina)))))
          for ram in range(x//2)]
-        #print(self.cortex)
+        # print(self.cortex)
 
     def classify(self, retina):
         """Classify a given pattern. :class:`lib.enplicaw.core.Cortex`
@@ -76,12 +76,12 @@ class Cortex:
 class Lobe:
     """Rede neural sem peso. :ref:`lobe`
     """
-    def __init__(self, data, topvalue, factor=1, ramorder=2, enforce=1, supress=0, bleach={k: 0 for k in range(6)}):
+    def __init__(self, data, topvalue, factor=1, ramorder=2, enforce_supress=(1, 0), bleach={k: 0 for k in range(6)}):
         self.retinasize, self.data = self.retinify(data, topvalue, factor)
         self.l, self.m, self.n = range(len(self.data))[::-1], range(len(self.data[0][0])), range(len(self.data[0]))
         l, m, n = self.l, self.m, self.n
         self.cortex = {key: Cortex(self.retinasize, bleacher) for key, bleacher in bleach.items()}
-        self.enforce, self.supress = enforce, supress
+        self.enforce, self.supress = enforce_supress
         self.bleach = bleach
         self.cortex_keys = sorted(k for k in bleach.keys())
         self.classifiers = [[[self.data[i][j][k] for k in m] for i in l] for j in n]
@@ -91,37 +91,42 @@ class Lobe:
         zfactor = 2*factor
         TOP = topvalue//factor
         BDATA = {i: [[([0]*(1*(j//zfactor)))+([1]*(j//zfactor))+([0]*(TOP-(2*(j//zfactor))))
-                      for j in k] for k in d] for i, d in retina.items()}
+                      for j in k] for k in d] for i, d in sorted(retina.items())}
         RS = (sum(1 for j in BDATA[0][0] for i in j))
         return RS, BDATA
 
-    def samplelearn(self, retinadict, samplesize):
+    def samplelearn(self, samplesize):
         def doshuffle(dt):
             # shuffle(dt)
             return dt[:samplesize]
-        data = {key: doshuffle(dt) for key, dt in retinadict.items()}
+        data = self.classifiers[:samplesize]
         self.learn(data)
 
-    def learn(self, retinadict):
-        enf, sup, keys, learnitems = self.enforce, self.supress, self.cortex.keys(), retinadict.items()
-        [self.cortex[key].learn([i for j in retina for i in j], offset=enf if key == learnkey else sup)
-         for key in keys for learnkey, retini in learnitems for retina in retini]
+    def learn(self, retinadata):
+            enf, sup, keys = self.enforce, self.supress, self.cortex_keys
+            [self.cortex[2-key].learn([i for j in retina for i in j],
+                                      offset=enf if key == learnkey else sup)for retini in retinadata
+             for key in keys for learnkey, retina in enumerate(retini)]
 
-    def classifynlearn(self, retinadict):
-        def discriminate(retina):
+    def classifynlearn(self):
+        def discriminate(retina, key):
             votes = sorted([(sum(self.cortex[2-key].classify([i for j in retina for i in j])), key) for key in keys])
-            confidence = (votes[-1][0]-max(0, votes[-2][0]))/votes[-1][0]
-            if confidence > 0.5:
-                self.cortex[votes[-1][1]].learn([i for j in retina[:] for i in j], offset=self.enforce)
-            print(votes, confidence)
+            confidence = (votes[-1][0]-max(0, votes[-2][0]))/(abs(votes[-1][0])+0.001)
+            if max(votes)[1] != key:
+                print(votes, confidence, 'become', max(votes)[1], 'but was', key)
+            else:
+                print(votes, confidence)
+
+            if confidence > CONFIDENCE:
+                self.cortex[votes[-1][1]].learn([i for j in retina for i in j], offset=self.enforce)
             return votes
         keys = self.cortex_keys
         return [
             [
-                discriminate(retina) for retina in retini
+                discriminate(retina, key) for key, retina in enumerate(retini)
                 ] for retini in self.classifiers]
 
-    def classify(self, retinadict):
+    def classify(self):
         keys = self.cortex_keys
         return [
             [
@@ -130,27 +135,33 @@ class Lobe:
                     for key in keys]) for retina in retini
                 ] for retini in self.classifiers]
 
-    def results(self, cls=None):
-        RETINASIZE, retinadict = self.retinasize, self.data
-        lobe = self
-        lobe.samplelearn(retinadict, 5)
-        cls = lobe.classifynlearn(retinadict)
-        confidences = [[(tup[-1][1], 100*(tup[-1][0] - tup[-2][0])//tup[-1][0]) for tup in triade] for triade in cls]
-        hitsamples = [[1 for clsd, real in zip(cl, (0, 1, 2)) if clsd[0] == real] for cl in confidences]
+    def results(self):
+        self.samplelearn(SAMPLESIZE)
+        cls = self.classifynlearn()
+        confidences = [[(tup[-1][1], 100*(tup[-1][0] - tup[-2][0])//(abs(tup[-1][0])+0.01))
+                        for tup in triade] for triade in cls]
+        hitsamples = [[1 if clsd[0] == real else 0 for clsd, real in zip(cl, (0, 1, 2))] for cl in confidences]
         sscls = sum(1 for cl in confidences for clsd, real in zip(cl, (0, 1, 2)) if clsd[0] == real)
-        #print(hitsamples)
+        print([sum(c[k][1] for c in confidences)/len(confidences) for k in range(3)],
+              [100*sum(tr)//(len(hitsamples))for tr in zip(*hitsamples)])
         return 100*sscls//(len(hitsamples)*3)
 
 
 def main(data, sample=1):
     from time import time
     # RETINASIZE, retinadict = Lobe.retinify(data, 100, factor=4)
-    lobe = Lobe(data, 100, factor=4, enforce=9, supress=-4, bleach={0: 3, 1: 1, 2: 1})
+    lobe = Lobe(data, 100, factor=4, enforce_supress=ENFSUP, bleach=BLEACH)
     # print(result)
     timer = time()
     acc = [lobe.results() for _ in range(sample)]
     print("min: %d, max: %d, average; %d, elapset time %f" % (min(acc), max(acc), sum(acc)//sample, time()-timer))
-
+CONFIDENCE = 2
+SAMPLESIZE = 3
+ENFSUP = (20, 0)
+BLEACH = {0: 3, 1: 3, 2: 3}
+BLEACH = {0: 1, 1: 1, 2: 1}
+#BLEACH = {0: 56, 1: 56, 2: 56}
+BLEACH = {0: 150, 1: 150, 2: 150}
 DATA = '''
 5.1,3.5,1.4,0.2,Iris-setosa
 4.9,3.0,1.4,0.2,Iris-setosa
@@ -307,7 +318,7 @@ MAP = {"Iris-virginica": 0, "Iris-versicolor": 1, "Iris-setosa": 2}
 SDATA = {0: [], 1: [], 2: []}
 [SDATA[MAP[r.split(",")[-1]]].append([int(float(d)*10)
  for d in r.split(",")[:-1]]) for r in DATA]
-print (SDATA)
+print(SDATA)
 
 if __name__ == '__main__':
     main(SDATA)
