@@ -48,7 +48,7 @@ class Cortex:
         self.bleach = bleach
 
     def learn(self, retina, offset=1):
-        """Learn new patterns. :class:`lib.enplicaw.core.Cortex`
+        """Learn new patterns. :class:`server.models.enplicaw.core.Cortex`
 
         :param retina: retina pixel vector to be learned.
         :param offset: ammount of offset to be added to RAM node at learning.
@@ -61,7 +61,7 @@ class Cortex:
         # print(self.cortex)
 
     def classify(self, retina):
-        """Classify a given pattern. :class:`lib.enplicaw.core.Cortex`
+        """Classify a given pattern. :class:`server.models.enplicaw.core.Cortex`
 
         :param retina: retina pixel vector to be classified.
         :return: vector of responding RAM node values.
@@ -94,7 +94,7 @@ class Lobe:
 
     @classmethod
     def retinify(cls, histogram_data, topvalue, factor=1):
-        """ Formats a histogram into a histogram_data format. :class:`lib.enplicaw.core.Lobe`
+        """ Formats a histogram into a retina format. :class:`server.models.enplicaw.core.Lobe`
 
         :param histogram_data: input data stream.
         :param topvalue: the largest value of any data.
@@ -109,7 +109,7 @@ class Lobe:
         return retinasize, retinadata
 
     def samplelearn(self, samplesize):
-        """ Extract a sample of retina data for learning. :class:`lib.enplicaw.core.Lobe`
+        """ Extract a sample of retina data for learning. :class:`server.models.enplicaw.core.Lobe`
 
         :param samplesize: The amount of retinas to sample.
         :return:
@@ -118,7 +118,7 @@ class Lobe:
         self.learn(data)
 
     def learn(self, retinadata):
-        """Learn patterns from a collection of retinas. :class:`lib.enplicaw.core.Lobe`
+        """Learn patterns from a collection of retinas. :class:`server.models.enplicaw.core.Lobe`
 
         :param retinadata: collection of retinas.
         """
@@ -128,12 +128,12 @@ class Lobe:
          for key in keys for learnkey, retina in enumerate(retini)]
 
     def classifynlearn(self):
-        """Classifies a batch of retina data, and attempt to online leanr from the best. :class:`lib.enplicaw.core.Lobe`
+        """Classifies a batch of retina data, and attempt to online leanr from the best. :class:`server.models.enplicaw.core.Lobe`
 
         :return: a colection of tuples of votes given from each discriminator.
         """
         def discriminate(retina, key):
-            votes = sorted([(sum(self.cortex[2 - key].classify([i for j in retina for i in j])), key) for key in keys])
+            votes = sorted([(sum(self.cortex[2 - akey].classify([i for j in retina for i in j])), akey) for akey in keys])
             confidence = (votes[-1][0] - max(0, votes[-2][0])) / (abs(votes[-1][0]) + 0.001)
             if max(votes)[1] != key:
                 print(votes, confidence, 'become', max(votes)[1], 'but was', key)
@@ -148,7 +148,7 @@ class Lobe:
         return [[discriminate(retina, key) for key, retina in enumerate(retini)] for retini in self.sample_entries]
 
     def classify(self):
-        """ A simple classification routine. :class:`lib.enplicaw.core.Lobe`
+        """ A simple classification routine. :class:`server.models.enplicaw.core.Lobe`
 
         :return: a colection of tuples of votes given from each discriminator.
         """
@@ -159,7 +159,7 @@ class Lobe:
                 ] for retini in self.sample_entries]
 
     def results(self):
-        """ Compile confidences, hitsample lists. :class:`lib.enplicaw.core.Lobe`
+        """ Compile confidences, hitsample lists. :class:`server.models.enplicaw.core.Lobe`
 
         :return: accuracy performance in hits/total.
         """
@@ -175,7 +175,7 @@ class Lobe:
 
 
 def main(data, sample=1):
-    """ Main task, runs, leaning, classification, and report results. :class:`lib.enplicaw.core.Lobe`
+    """ Main task, runs, leaning, classification, and report results. :class:`server.models.enplicaw.core.Lobe`
 
     :param data: input data stream with all samples formatted as values tuples.
     :param sample: ammount of times that whole cicly will run.

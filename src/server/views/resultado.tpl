@@ -3,7 +3,7 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
     <title>Resultado do Superpython</title>
-    <link rel="stylesheet" href="style.css" type="text/css" />
+    <link rel="stylesheet" href="/style.css" type="text/css" />
 </head>
 <body>
     <h1>Resultado da Enquete Superpython</h1>

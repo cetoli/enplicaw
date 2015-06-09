@@ -16,3 +16,4 @@
 #
 # Você deve ter recebido uma cópia da Licença Pública Geral GNU
 # junto com este programa, se não, veja em <http://www.gnu.org/licenses/>
+from server.models.ndbstore import Session as ModelSession

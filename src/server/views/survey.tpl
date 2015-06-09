@@ -3,11 +3,11 @@
 <head>
     <meta http-equiv="Content-Type" content="application/x-www-form-urlencoded;charset=UTF-8"/>
     <title>Enquete : {{ title }}</title>
-    <link rel="stylesheet" href="style.css" type="text/css" />
+    <link rel="stylesheet" href="/style.css" type="text/css" />
 </head>
 <body>
     <h1>Enquete do projeto {{ title }}</h1>
-    <form action="survey" method="post">
+    <form action="main/survey" method="post">
     <table id="box-table-a" style="width: 750px;">
 
         <thead>
@@ -41,7 +41,7 @@
             % end
             <tr>
                 <td colspan="{{ columns//2 + 1}}"><span><input type="submit" name="submit" size="60" value="      Enviar Dados e Entrar Novo Aluno      "></input></span></td>
-                <td colspan="{{ columns - columns//2}}"><span><input type="submit" name="lastsubmit"  onclick='this.form.action="endsurvey";' value="      Enviar Dados e Terminar      "></input></span></td>
+                <td colspan="{{ columns - columns//2}}"><span><input type="submit" name="lastsubmit"  onclick='this.form.action="main/endsurvey";' value="      Enviar Dados e Terminar      "></input></span></td>
             </tr>
         </tbody>
 

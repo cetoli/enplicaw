@@ -49,8 +49,8 @@ An implementaion of Weightless Neural Netwok
 
 .. ndbstore:
 
-An implementaion Google Databese Store Model
-============================================
+An implementation of Google Database Store Model
+================================================
 
 .. automodule:: server.models.ndbstore
     :members:

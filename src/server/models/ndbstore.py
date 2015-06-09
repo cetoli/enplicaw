@@ -30,12 +30,9 @@ import sys
 if "AUTH_DOMAIN" in os.environ.keys():
     from google.appengine.ext import ndb
 else:
-    if sys.version_info[0] == 2:
-        from mock import MagicMock
-        sys.modules['google.appengine.ext'] = MagicMock()
-    else:
-        from unittest.mock import MagicMock
-        sys.modules['google.appengine.ext'] = MagicMock()
+    from lib.minimock import Mock
+    sys.modules['google.appengine.ext'] = Mock('google.appengine.ext')
+    ndb = Mock('google.appengine.ext')
 
 # import googledatastore as ndb
 

@@ -67,7 +67,7 @@ Super Python - User Programming Interface
 </head>
 <body>
     <h1 id="tit"> {{ title }}</h1>
-    <form action="identify" method="post">
+    <form action="main/identify" method="post">
         <div id="menu">
             <div id="banner"><img src="{{ image }}" height="300"/></div>
             % for item in identification:
