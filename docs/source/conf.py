@@ -29,10 +29,10 @@ from client.enplicaw import __version__
 
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.todo', 'sphinx.ext.viewcode', 'rst2pdf.pdfbuilder']
+extensions = ['sphinx.ext.autodoc', 'sphinx.ext.todo', 'sphinx.ext.viewcode'] # , 'rst2pdf.pdfbuilder']
 
 
-pdf_documents = [('index', u'enplicaw', u'A Wisard WNN for Surveys', u'Érica Calil Nogueira')]
+# pdf_documents = [('index', u'enplicaw', u'A Wisard WNN for Surveys', u'Érica Calil Nogueira')]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
