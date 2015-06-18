@@ -114,6 +114,7 @@ class Lobe:
         :param samplesize: The amount of retinas to sample.
         :return:
         """
+        shuffle(self.sample_entries)
         data = self.sample_entries[:samplesize]
         self.learn(data)
 
@@ -133,18 +134,22 @@ class Lobe:
         :return: a colection of tuples of votes given from each discriminator.
         """
         def discriminate(retina, key):
+            ret = retina[:]
             votes = sorted([(sum(self.cortex[2 - akey].classify([i for j in retina for i in j])), akey) for akey in keys])
             confidence = (votes[-1][0] - max(0, votes[-2][0])) / (abs(votes[-1][0]) + 0.001)
             if max(votes)[1] != key:
-                print(votes, confidence, 'become', max(votes)[1], 'but was', key)
+                print(votes, confidence, 'become', max(votes)[1], 'but was', 2-key)
             else:
                 print(votes, confidence)
 
-            if confidence > CONFIDENCE:
-                self.cortex[votes[-1][1]].learn([i for j in retina for i in j], offset=self.enforce)
+                if confidence > CONFIDENCE[votes[-1][1]]:
+                    self.cortex[2-votes[-1][1]].learn([i for j in ret for i in j], offset=self.enforce)
+                    print(votes, confidence, 'cortex', votes[-1][1], 'learn', self.enforce)
             return votes
 
         keys = self.cortex_keys
+        for i in range(3):
+            self.cortex[i].bleach += self.bleach[i]/8
         return [[discriminate(retina, key) for key, retina in enumerate(retini)] for retini in self.sample_entries]
 
     def classify(self):
@@ -169,8 +174,10 @@ class Lobe:
                         for tup in triade] for triade in classifications]
         hitsamples = [[1 if clsd[0] == real else 0 for clsd, real in zip(cl, (0, 1, 2))] for cl in confidences]
         total_hits = sum(1 for cl in confidences for clsd, real in zip(cl, (0, 1, 2)) if clsd[0] == real)
-        print([sum(c[k][1] for c in confidences) / len(confidences) for k in range(3)],
-              [100 * sum(tr) // (len(hitsamples)) for tr in zip(*hitsamples)])
+        print('ordered: [(RAM score, cortes index)], confidence ratio, class change when happens')
+        print('avg conf. ctx[0, 1, 2]:',
+              [sum(c[k][1] for c in confidences) / len(confidences) for k in range(3)])
+        print('hit ratio for ctx[0, 1, 2]:', [100 * sum(tr) // (len(hitsamples)) for tr in zip(*hitsamples)])
         return 100 * total_hits // (len(hitsamples) * 3)
 
 
@@ -182,16 +189,29 @@ def main(data, sample=1):
     :return:
     """
     from time import time
-    lobe = Lobe(data, 100, factor=4, enforce_supress=ENFSUP, bleach=BLEACH)
-    timer = time()
-    acc = [lobe.results() for _ in range(sample)]
+    acc = []
+    for _ in range(sample):
+        lobe = Lobe(data, 100, factor=4, enforce_supress=ENFSUP, bleach=BLEACH)
+        timer = time()
+        acc += [lobe.results()]
     print("min: %d, max: %d, average; %d, elapset time %f" % (min(acc), max(acc), sum(acc) // sample, time() - timer))
 
 
-CONFIDENCE = 2
-SAMPLESIZE = 3
-ENFSUP = (20, 0)
-BLEACH = {0: 150, 1: 150, 2: 150}
+CONFIDENCE = 1, 1, 1
+SAMPLESIZE = 4
+RUNS = 1000
+ENFSUP = (13, 0)
+BL = 1475
+ENFSUP = (1000, -100)
+# BL = 0
+BLEACH = {0: 48, 1: 40, 2: 31}
+BLEACH = {0: BL-320, 1: BL-295, 2: BL}
+BLEACH = {0: 1, 1: 1, 2: 1}
+ENFSUP = (10, -1)
+BL = 11
+ENFSUP = (2800, 0)
+BL = 7300
+BLEACH = {0: BL, 1: BL, 2: BL}
 DATA = '''
 5.1,3.5,1.4,0.2,Iris-setosa
 4.9,3.0,1.4,0.2,Iris-setosa
@@ -350,4 +370,4 @@ SDATA = {0: [], 1: [], 2: []}
                                       for d in r.split(",")[:-1]]) for r in DATA]
 
 if __name__ == '__main__':
-    main(SDATA)
+    main(SDATA, RUNS)
