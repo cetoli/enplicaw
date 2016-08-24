@@ -22,47 +22,21 @@
 Enplicaw - Teste
 ############################################################
 
-Verifica a funcionalidade do cliente web.
+Verifica a funcionalidade do engenho neural.
 
 """
 import unittest
-from client.enplicaw.core import Enplicaw
-from client.enplicaw import main
+from enplicaw.enplicaw import Wisard
 
 
 class EnplicawTest(unittest.TestCase):
 
-    def setUp(self):
-
-        class Gui(object):
-            def __init__(self, x=0):
-                self.svg = None
-                self.html = None
-                self.ajax = None
-
-
-            def __getitem__(self, x):
-                return self
-
-            def __le__(self, *x):
-                pass
-
-            def setAttribute(self, *x):
-                self.opacity = 0.5
-
-            def image(self, *x, **kw):
-                return self
-
-            def svg(self, *x, **kw):
-                return self
-       
-        self.gui = Gui()
-        self.app = Enplicaw(self.gui)
-
     def test_main(self):
         """garante que intância de Enplicaw é criada."""
-        sp = main(self.gui)
-        assert sp is not None
+        cls = "Iris-setosa Iris-versicolor Iris-virginica".split()
+        bleacher = {"Iris-setosa": 9, "Iris-versicolor": 0, "Iris-virginica": 0}
+        w = Wisard(22 * 4, bleach=579, mapper=bleacher, enf=10, sup=1)
+        assert w is not None
 
 
 if __name__ == '__main__':
