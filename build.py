@@ -3,9 +3,10 @@ from pybuilder.core import use_plugin, init, Author, task
 import os
 import sys
 SRC = os.path.join(os.path.dirname(__file__), "src")
+# SRC = os.path.join(os.path.dirname(__file__), "src/enplicaw")
 DOC = os.path.join(os.path.dirname(__file__), "docs")
 sys.path.append(SRC)
-from client.enplicaw import __version__
+from enplicaw.enplicaw import __version__
 
 
 use_plugin("python.core")
@@ -62,9 +63,3 @@ def buid_docs(project, logger):
     from subprocess import check_output
     result = check_output(['make', '-C', DOC, 'html'])
     logger.info(result)
-
-@task
-def prepare_for_gae(project, logger):
-    import shutil
-    shutil.copy("src/client/__init__.py", "src")
-    logger.info(" copy src/client/__init__.py to src")

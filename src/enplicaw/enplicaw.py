@@ -1,9 +1,28 @@
 # -*- coding: UTF8 -*-
+# -*- coding: UTF8 -*-
+# Este arquivo é parte do programa Enplicaw
+# Copyright 2013-2015 Carlo Oliveira <carlo@nce.ufrj.br>,
+# `Labase <http://labase.selfip.org/>`__; `GPL <http://is.gd/3Udt>`__.
+#
+# Enplicaw é um software livre; você pode redistribuí-lo e/ou
+# modificá-lo dentro dos termos da Licença Pública Geral GNU como
+# publicada pela Fundação do Software Livre (FSF); na versão 2 da
+# Licença.
+#
+# Este programa é distribuído na esperança de que possa ser útil,
+# mas SEM NENHUMA GARANTIA; sem uma garantia implícita de ADEQUAÇÃO
+# a qualquer MERCADO ou APLICAÇÃO EM PARTICULAR. Veja a
+# Licença Pública Geral GNU para maiores detalhes.
+#
+# Você deve ter recebido uma cópia da Licença Pública Geral GNU
+# junto com este programa, se não, veja em <http://www.gnu.org/licenses/>
+
 from random import shuffle, random
 import operator
 from constants import PRIMES, DATA
 
 __author__ = 'carlo'
+__version__ = "0.2.0"
 RND = 3141
 SBLEACH = 3
 EBLEACH = 1
@@ -45,18 +64,65 @@ class Wisard:
         [self.retinify(sample[2:]) for sample in samples]
 
     @staticmethod
-    def retinify(retina, threshold=32, band=8):
+    def retinify(retina, threshold=32, band=8, zoom=4):
         def retinate(value, pix=0, bnd=0):
-            return [pix] * int(float(bnd + (1 - pix) * value) // ZFATOR)
+            return [pix] * int(float(bnd + (1 - pix) * value) * zoom // ZFATOR)
 
         def deretinate(value, pix=0):
-            return [pix] * (TOP - (band + int(float(value) // ZFATOR)))
+            return [pix] * (TOP - (band + int(float(value) * zoom // ZFATOR)))
 
         # print(retina, [(int(float(ZO * v) // ZFATOR), (TOP - (2 * int(float(ZO * v) // ZFATOR)))) for v in retina])
         retina = [
             (retinate(value) + retinate(value, 1, band) + deretinate(value))[:threshold]
             for value in retina]
         return [pix for line in retina for pix in line]
+
+    @staticmethod
+    def sense_domain(data):
+        def updater(lobe, index, off):
+            return {index: lobe[index] + off}
+        data = [[float(p) for p in line.split(",")[:-1]] for i, line in enumerate(data)]
+
+        retina = Wisard.retinify(data[0])
+        lobe = [{(a, b): 0 for a in [0, 1] for b in [0, 1]} for _ in range(len(retina) // 2)]
+        master_retina = [0 for line in range(len(retina))]
+        for sample in data:
+            retina = Wisard.retinify(sample)
+            [master_retina.__setitem__(pix, master_retina[pix]+retina[pix]) for pix in range(len(master_retina))]
+            [neuron.update(
+                updater(neuron, (retina.pop(RND % len(retina)), retina.pop(RND % len(retina))), 1))
+             for neuron in lobe]
+        domain = list(set(master_retina[:]))
+        domain.sort()
+        domain = [(tre, sum(1 for pix in master_retina if tre == pix)) for tre in domain]
+        print(domain, len(master_retina), len(data), len(data[0]), sum(dm[1] for dm in domain[1:-1]))
+        domain = list(set([val for neuron in lobe for val in neuron.values()]))
+        domain.sort()
+        domain = [(tre, sum(1 for neuron in lobe for val in neuron.values() if tre == val)) for tre in domain]
+        print(domain, len(lobe), sum(dm[1] for dm in domain[1:-1])), sum(dm[0] for dm in domain[1:-1])
+        cutter = sum(dm[0]*dm[1] for dm in domain[1:-1])//2
+        lower_half = []
+        higher_half = []
+        wheighted_sum = 0
+        for wheight, count in domain[1:-1]:
+            if wheighted_sum > cutter:
+                break
+            wheighted_sum += wheight * count
+            [lower_half.append(neuron) if wheighted_sum < cutter else higher_half.append(neuron) for neuron in lobe
+             if any(neuron[(a, b)] == wheight for a in [0, 1] for b in [0, 1])]
+        print(cutter, len(lower_half), len(higher_half), wheighted_sum)
+
+        show([1 if pix == 3 else 0 for pix in master_retina])
+        return {"l": lower_half, "h": higher_half}
+
+    def unsupervised_learn(self, data):
+        clazzes = self.sense_domain(data)
+        self.cortex = clazzes
+        self.bleacher = {key: 0 for key in clazzes.keys()}
+        data = [[i, line.split(",")[-1]] + [float(p) for p in line.split(",")[:-1]] for i, line in enumerate(data)]
+        result = self.classify_samples(data=data)
+        for line in result:
+            print(line)
 
     def learn(self, clazz, master_retina):
         def updater(lobe, index, off):
@@ -89,7 +155,7 @@ class Wisard:
 
 
 def show(retina):
-    for i in range(32):
+    for i in range(len(retina)//32):
         print("".join([str(retina[j + 32 * i]) for j in range(32)]))
     return
 
@@ -112,8 +178,8 @@ def _run(data):
 
 def run(data):
     cls = "Iris-setosa Iris-versicolor Iris-virginica".split()
-    bleacher = {"Iris-setosa": 9, "Iris-versicolor": 0, "Iris-virginica": 0}
-    w = Wisard(22 * 4, bleach=579, mapper=bleacher, enf=10, sup=1)
+    bleacher = {"Iris-setosa": 9, "Iris-versicolor": 3, "Iris-virginica": 4}
+    w = Wisard(22 * 4, bleach=502, mapper=bleacher, enf=10, sup=1)
     # show(w.retinify(data[0][2:]))
     # return
     w.learn_samples(data)
@@ -196,4 +262,6 @@ def _main(_):
 
 
 if __name__ == '__main__':
-    main(DATA)
+    # main(DATA)
+    Wisard.sense_domain(DATA)
+    Wisard().unsupervised_learn(DATA)
