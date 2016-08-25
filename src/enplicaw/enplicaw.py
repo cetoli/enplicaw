@@ -1,5 +1,4 @@
 # -*- coding: UTF8 -*-
-# -*- coding: UTF8 -*-
 # Este arquivo é parte do programa Enplicaw
 # Copyright 2013-2015 Carlo Oliveira <carlo@nce.ufrj.br>,
 # `Labase <http://labase.selfip.org/>`__; `GPL <http://is.gd/3Udt>`__.
@@ -24,12 +23,8 @@ from constants import PRIMES, DATA
 __author__ = 'carlo'
 __version__ = "0.2.0"
 RND = 3141
-SBLEACH = 3
-EBLEACH = 1
-IBLEACH = 1
-FATOR = 1
 ZFATOR = 2  # 2 * FATOR
-TOP = 50 // FATOR
+TOP = 50
 ZO = 3
 
 
@@ -100,6 +95,10 @@ class Wisard:
         domain.sort()
         domain = [(tre, sum(1 for neuron in lobe for val in neuron.values() if tre == val)) for tre in domain]
         print(domain, len(lobe), sum(dm[1] for dm in domain[1:-1])), sum(dm[0] for dm in domain[1:-1])
+        return Wisard.split_classes(domain, lobe, master_retina)
+
+    @staticmethod
+    def split_classes(domain, lobe, master_retina):
         cutter = sum(dm[0]*dm[1] for dm in domain[1:-1])//2
         lower_half = []
         higher_half = []
@@ -112,10 +111,19 @@ class Wisard:
              if any(neuron[(a, b)] == wheight for a in [0, 1] for b in [0, 1])]
         print(cutter, len(lower_half), len(higher_half), wheighted_sum)
 
-        show([1 if pix == 3 else 0 for pix in master_retina])
+        show([1 if pix else 0 for pix in master_retina])
         return {"l": lower_half, "h": higher_half}
 
     def unsupervised_learn(self, data):
+        clazzes = self.sense_domain(data)
+        self.cortex = clazzes
+        self.bleacher = {key: 0 for key in clazzes.keys()}
+        samples = [[i, line.split(",")[-1]] + [float(p) for p in line.split(",")[:-1]] for i, line in enumerate(data)]
+        result = self.classify_samples(data=samples)
+        for line in result:
+            print(line)
+        print ("##################################################################")
+        data = [dt for dt, rs in zip(data, result) if rs[2]["h"] == 253]
         clazzes = self.sense_domain(data)
         self.cortex = clazzes
         self.bleacher = {key: 0 for key in clazzes.keys()}
