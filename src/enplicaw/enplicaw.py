@@ -26,6 +26,7 @@ RND = 3141
 ZFATOR = 2  # 2 * FATOR
 TOP = 50
 ZO = 3
+LGN = "large geniculated nucleus"  # Route retina conections into cortex
 
 
 def tupler(x):
@@ -40,14 +41,19 @@ class Wisard:
         self.data = data
         self.bleacher, self.enf, self.sup, self.retinasize = mapper, enf, sup, retinasize
         self.cortex = self.auto_bleach = {}
+        self.lgb = []
         self.bleach = bleach
         self.clazzes = list(mapper.keys())
         # self.cortex = [{t: 0 for t in tupler(ramorder-1)} for _ in range(retinasize//2)]
         self.reset_brain()
 
     def reset_brain(self):
-        self.cortex = {key: [{(a, b): 0 for a in [0, 1] for b in [0, 1]} for _ in range(self.retinasize // 2)]
+        lgn = large_geniculated_nucleus = list(range(self.retinasize))*3
+        self.cortex = {key: [{(a, b): 0 if not b == LGN else lgn.pop(RND % len(lgn))
+                              for a in [0, 1] for b in [0, 1, LGN]} for _ in range(self.retinasize // 2)]
                        for key in self.clazzes}
+        # self.cortex = {key: [{(a, b): 0 for a in [0, 1] for b in [0, 1]} for _ in range(self.retinasize // 2)]
+        #                for key in self.clazzes}
         self.auto_bleach = {key: 1 for key in self.clazzes}
 
     def update_balance(self):
@@ -146,6 +152,19 @@ class Wisard:
         clazzes = self.clazzes
         shuffle(clazzes)
         for cls in clazzes:
+            [lobe.update(updater(lobe, (master_retina[lobe[(0, LGN)]], master_retina[lobe[(1, LGN)]]),
+                         self.enf if cls == clazz else self.sup if cls != "N" else 0))
+             for lobe in self.cortex[cls] if len(master_retina)]
+
+    def _learn(self, clazz, master_retina):
+        def updater(lobe, index, off):
+            return {index: lobe[index] + off}
+
+        # if random() > 0.6:
+        #     return
+        clazzes = self.clazzes
+        shuffle(clazzes)
+        for cls in clazzes:
             retina = master_retina[:]
             [lobe.update(
                 updater(lobe, (retina.pop(RND % len(retina)), retina.pop(RND % len(retina))),
@@ -162,7 +181,7 @@ class Wisard:
         res = self.classify_samples(data)
         return res
 
-    def main(self):
+    def main(self, namer=-1):
         global RND
         clazzes = self.clazzes + ["U"]
         tot = {u[0]: {key: 0 if key != "U" else str(u[0]) + " " + str(u[1]) for key in clazzes} for u in
@@ -179,13 +198,13 @@ class Wisard:
         total_sec = 0
         for line in total:
             val = dict(tot[line])
-            user = val.pop("U")[-1:] if "U" in val else ""
+            user = val.pop("U")[namer:] if "U" in val else ""
             val = list(val.items())
             # print(val)
             val.sort(key=operator.itemgetter(1), reverse=True)
             first, sec, third = val[0][1], val[1][1], val[2][1]
             confidence = min(100 * abs(first - sec) // max(abs(first), 1), 100)
-            conf = confidence if (user == val[0][0]) or ("e" == user) else -confidence
+            conf = confidence if (user == val[0][0][namer:]) or ("e" == user) else -confidence
             secd = min(abs(sec // max(abs(first), 1)) * conf, 100)  # if (user == val[0][0]) or ("e" == user) else 0
             # conf = 100 * abs(first-sec) // max(abs(first), abs(sec))
             # conf = 100 * (max(first, 0)-max(sec, 0)) // first
@@ -200,11 +219,21 @@ class Wisard:
 
     def classify(self, retina):
         def calculate_for_claz(lobe, clazz):
+            bleach = 0  # min(self.auto_bleach.values())
+            auto = 0  # (self.auto_bleach[clazz]-bleach)/1.9
+            return sum(
+                neuron[(retina[neuron[(0, LGN)]], retina[neuron[(1, LGN)]])]
+                - self.bleach - bleach - self.bleacher[clazz] - auto for neuron in lobe if len(retina))
+
+        return {clazz: calculate_for_claz(lobe, clazz) for clazz, lobe in self.cortex.items()}
+
+    def _classify(self, uma_retina):
+        def calculate_for_claz(lobe, clazz):
             uma_retina = retina[:]
             bleach = 0  # min(self.auto_bleach.values())
             auto = 0  # (self.auto_bleach[clazz]-bleach)/1.9
             return sum(
-                neuron[(uma_retina.pop(RND % len(uma_retina)), uma_retina.pop(RND % len(uma_retina)))]
+                neuron[(uma_retina.pop(RND % len(umaretina)), uma_retina.pop(RND % len(uma_retina)))]
                 - self.bleach - bleach - self.bleacher[clazz] - auto for neuron in lobe if len(uma_retina))
 
         return {clazz: calculate_for_claz(lobe, clazz) for clazz, lobe in self.cortex.items()}
@@ -254,7 +283,7 @@ def main(data):
     data = [[i, line.split(",")[-1]] + [float(p) for p in line.split(",")[:-1]] for i, line in enumerate(data)]
 
     w = Wisard(data, 22 * 4, bleach=502, mapper=bleacher, enf=10, sup=1)
-    w.main()
+    w.main(-3)
 
 if __name__ == '__main__':
     main(DATA)
