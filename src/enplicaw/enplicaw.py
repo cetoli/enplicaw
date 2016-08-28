@@ -21,12 +21,12 @@ import operator
 from constants import PRIMES, DATA
 
 __author__ = 'carlo'
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 RND = 3141
 ZFATOR = 2  # 2 * FATOR
 TOP = 50
 ZO = 3
-LGN = "large geniculated nucleus"  # Route retina conections into cortex
+LGN = -1000  # "large geniculated nucleus"  # Route retina conections into cortex
 
 
 def tupler(x):
@@ -40,31 +40,114 @@ class Wisard:
     def __init__(self, data, retinasize=3 * 4, bleach=0, mapper={i: i for i in range(4)}, enf=1, sup=0):
         self.data = data
         self.bleacher, self.enf, self.sup, self.retinasize = mapper, enf, sup, retinasize
-        self.cortex = self.auto_bleach = {}
-        self.lgb = []
+        self.auto_bleach = {}
         self.bleach = bleach
         self.clazzes = list(mapper.keys())
-        # self.cortex = [{t: 0 for t in tupler(ramorder-1)} for _ in range(retinasize//2)]
+
+        class Cortex:
+
+            def __init__(self, data, clazz, bleach):
+                self.data, self.clazz, self.bleacher, self.cortex = data, clazz, bleach, [{(0, 0): []}]
+                self.reset_cortex()
+
+            def reset_cortex(self):
+                lgn = large_geniculated_nucleus = list(range(retinasize))
+                self.cortex = [{(a, b): 0 if not b == LGN else lgn.pop(RND % len(lgn))
+                                for a in [0, 1] for b in [0, 1, LGN]} for _ in range(retinasize // 2)]
+
+            def learn(self, sample_clazz, master_retina):
+                cortex, clazz, enf, sup = self.cortex, self.clazz, self.enf, self.sup
+                for neuron in cortex:
+                    neuron[(master_retina[neuron[(0, LGN)]], master_retina[neuron[(1, LGN)]])
+                           ] += enf if sample_clazz == clazz else sup if cls != "N" else 0
+
+            def classify(self, retina):
+                retina = self.data
+                if not retina:
+                    return
+                return {self.clazz: sum(
+                    neuron[(retina[neuron[(0, LGN)]], retina[neuron[(1, LGN)]])]
+                    for neuron in self.cortex) - len(retina) * (self.bleach + self.bleacher)}
+
+        self.cortex = [Cortex(data, clazz, bleach) for clazz, bleach in mapper.items()]
         self.reset_brain()
 
     def reset_brain(self):
-        lgn = large_geniculated_nucleus = list(range(self.retinasize))*3
-        self.cortex = {key: [{(a, b): 0 if not b == LGN else lgn.pop(RND % len(lgn))
-                              for a in [0, 1] for b in [0, 1, LGN]} for _ in range(self.retinasize // 2)]
-                       for key in self.clazzes}
-        # self.cortex = {key: [{(a, b): 0 for a in [0, 1] for b in [0, 1]} for _ in range(self.retinasize // 2)]
-        #                for key in self.clazzes}
-        self.auto_bleach = {key: 1 for key in self.clazzes}
+        [cortex.reset_cortex() for cortex in self.cortex]
+        # self.auto_bleach = {key: 1 for key in self.clazzes}
 
-    def update_balance(self):
+    def _update_balance(self):
         for clazz in self.clazzes:
             auto = sum(next(ram.values() for ram in self.cortex[clazz]))
             print(clazz, auto)
             self.auto_bleach[clazz] = auto if auto else 1
         return None
 
-    def learn_samples(self, samples):
-        return len([self.learn(s[1], self.retinify(s[2:])) for s in samples if s[1]])
+    def learn_samples(self):
+        enf, sup, samples = self.enf, self.sup, self.data
+        print(samples[0])
+        cortices = [(cortex.clazz, cortex.cortex) for cortex in self.cortex]
+        for _, sample_clazz, master_retina in samples:
+            if sample_clazz:
+                for clazz, cortex in cortices:
+                    for neuron in cortex:
+                        neuron[(master_retina[neuron[(0, LGN)]], master_retina[neuron[(1, LGN)]])
+                               ] += enf if sample_clazz == clazz else sup if sample_clazz != "N" else 0
+
+    def classify_samples(self):
+        bleach, retinasize, samples = self.bleach, self.retinasize, self.data
+        print("classify_samples", samples[0])
+        cortices = [(cortex.clazz, cortex.bleacher, cortex.cortex) for cortex in self.cortex]
+        return [
+            (name, sample_clazz,
+             {clazz: sum(
+                 neuron[(retina[neuron[(0, LGN)]], retina[neuron[(1, LGN)]])]
+                 for neuron in cortex) - retinasize * (bleach + bleacher)}
+             ) for clazz, bleacher, cortex in cortices
+            for name, sample_clazz, retina in samples]
+
+    def run(self):
+        self.reset_brain()
+        self.learn_samples()  # [:8])
+        # self.update_balance()
+        res = self.classify_samples()
+        return res
+
+    def main(self, namer=-1):
+        global RND
+        clazzes = self.clazzes + ["U"]
+        tot = {u[0]: {key: 0 if key != "U" else str(u[0]) + " " + str(u[1]) for key in clazzes} for u in
+               self.data}
+        primes = PRIMES[:]
+        for _ in range(1):
+            # shuffle(data)
+            RND = primes.pop()
+            res = self.run()
+            [tot[name].update({cl: tot[name][cl] + s for cl, s in line.items()}) for name, _, line in res]
+        total = list(tot.keys())
+        total.sort()
+        total_conf = 0
+        total_sec = 0
+        for line in total:
+            val = dict(tot[line])
+            user = val.pop("U")[namer:] if "U" in val else ""
+            val = list(val.items())
+            # print(val)
+            val.sort(key=operator.itemgetter(1), reverse=True)
+            first, sec, third = val[0][1], val[1][1], val[2][1]
+            confidence = min(100 * abs(first - sec) // max(abs(first), 1), 100)
+            conf = confidence if (user == val[0][0][namer:]) or ("e" == user) else -confidence
+            secd = min(abs(sec // max(abs(first), 1)) * conf, 100)  # if (user == val[0][0]) or ("e" == user) else 0
+            # conf = 100 * abs(first-sec) // max(abs(first), abs(sec))
+            # conf = 100 * (max(first, 0)-max(sec, 0)) // first
+            total_conf += conf
+            total_sec += secd
+            # print(tot[line]["U"] + "  " + "".join(["%s:%8.0f " % (a[-3:], b) for a, b in val]), "conf: %d" % conf)
+            print("{name: >42} {val} conf: {conf}".format(name=tot[line]["U"] if "U" in tot[line] else "",
+                                                          val="".join(["%s:%8.0f " % (a[-3:], b) for a, b in val]),
+                                                          conf=conf))
+        print("total confidence %d" % (total_conf // len(total)))
+        return
 
     def retinify_samples(self, samples):
         [self.retinify(sample[2:]) for sample in samples]
@@ -130,7 +213,7 @@ class Wisard:
         self.cortex = clazzes
         self.bleacher = {key: 0 for key in clazzes.keys()}
         samples = [[i, line.split(",")[-1]] + [float(p) for p in line.split(",")[:-1]] for i, line in enumerate(data)]
-        result = self.classify_samples(data=samples)
+        result = self.classify_samples()
         for line in result:
             print(line)
         print ("##################################################################")
@@ -139,104 +222,9 @@ class Wisard:
         self.cortex = clazzes
         self.bleacher = {key: 0 for key in clazzes.keys()}
         data = [[i, line.split(",")[-1]] + [float(p) for p in line.split(",")[:-1]] for i, line in enumerate(data)]
-        result = self.classify_samples(data=data)
+        result = self.classify_samples()
         for line in result:
             print(line)
-
-    def learn(self, clazz, master_retina):
-        def updater(lobe, index, off):
-            return {index: lobe[index] + off}
-
-        # if random() > 0.6:
-        #     return
-        clazzes = self.clazzes
-        shuffle(clazzes)
-        for cls in clazzes:
-            [lobe.update(updater(lobe, (master_retina[lobe[(0, LGN)]], master_retina[lobe[(1, LGN)]]),
-                         self.enf if cls == clazz else self.sup if cls != "N" else 0))
-             for lobe in self.cortex[cls] if len(master_retina)]
-
-    def _learn(self, clazz, master_retina):
-        def updater(lobe, index, off):
-            return {index: lobe[index] + off}
-
-        # if random() > 0.6:
-        #     return
-        clazzes = self.clazzes
-        shuffle(clazzes)
-        for cls in clazzes:
-            retina = master_retina[:]
-            [lobe.update(
-                updater(lobe, (retina.pop(RND % len(retina)), retina.pop(RND % len(retina))),
-                        self.enf if cls == clazz else self.sup if cls != "N" else 0))
-             for lobe in self.cortex[cls] if len(retina)]
-
-    def classify_samples(self, data):
-        return [(s[0], s[1], self.classify(self.retinify(s[2:]))) for s in data]
-
-    def run(self, data):
-        self.reset_brain()
-        self.learn_samples(data)  # [:8])
-        self.update_balance()
-        res = self.classify_samples(data)
-        return res
-
-    def main(self, namer=-1):
-        global RND
-        clazzes = self.clazzes + ["U"]
-        tot = {u[0]: {key: 0 if key != "U" else str(u[0]) + " " + str(u[1]) for key in clazzes} for u in
-               self.data}
-        primes = PRIMES[:]
-        for _ in range(1):
-            # shuffle(data)
-            RND = primes.pop()
-            res = self.run(self.data)
-            [tot[line[0]].update({cl: tot[line[0]][cl] + s for cl, s in line[2].items()}) for line in res]
-        total = list(tot.keys())
-        total.sort()
-        total_conf = 0
-        total_sec = 0
-        for line in total:
-            val = dict(tot[line])
-            user = val.pop("U")[namer:] if "U" in val else ""
-            val = list(val.items())
-            # print(val)
-            val.sort(key=operator.itemgetter(1), reverse=True)
-            first, sec, third = val[0][1], val[1][1], val[2][1]
-            confidence = min(100 * abs(first - sec) // max(abs(first), 1), 100)
-            conf = confidence if (user == val[0][0][namer:]) or ("e" == user) else -confidence
-            secd = min(abs(sec // max(abs(first), 1)) * conf, 100)  # if (user == val[0][0]) or ("e" == user) else 0
-            # conf = 100 * abs(first-sec) // max(abs(first), abs(sec))
-            # conf = 100 * (max(first, 0)-max(sec, 0)) // first
-            total_conf += conf
-            total_sec += secd
-            # print(tot[line]["U"] + "  " + "".join(["%s:%8.0f " % (a[-3:], b) for a, b in val]), "conf: %d" % conf)
-            print("{name: >42} {val} conf: {conf}".format(name=tot[line]["U"] if "U" in tot[line] else "",
-                                                          val="".join(["%s:%8.0f " % (a[-3:], b) for a, b in val]),
-                                                          conf=conf))
-        print("total confidence %d" % (total_conf // len(total)))
-        return
-
-    def classify(self, retina):
-        def calculate_for_claz(lobe, clazz):
-            bleach = 0  # min(self.auto_bleach.values())
-            auto = 0  # (self.auto_bleach[clazz]-bleach)/1.9
-            return sum(
-                neuron[(retina[neuron[(0, LGN)]], retina[neuron[(1, LGN)]])]
-                - self.bleach - bleach - self.bleacher[clazz] - auto for neuron in lobe if len(retina))
-
-        return {clazz: calculate_for_claz(lobe, clazz) for clazz, lobe in self.cortex.items()}
-
-    def _classify(self, uma_retina):
-        def calculate_for_claz(lobe, clazz):
-            uma_retina = retina[:]
-            bleach = 0  # min(self.auto_bleach.values())
-            auto = 0  # (self.auto_bleach[clazz]-bleach)/1.9
-            return sum(
-                neuron[(uma_retina.pop(RND % len(umaretina)), uma_retina.pop(RND % len(uma_retina)))]
-                - self.bleach - bleach - self.bleacher[clazz] - auto for neuron in lobe if len(uma_retina))
-
-        return {clazz: calculate_for_claz(lobe, clazz) for clazz, lobe in self.cortex.items()}
 
 
 def show(retina):
@@ -280,7 +268,8 @@ def main(data):
     global RND
     cls = "Iris-setosa Iris-versicolor Iris-virginica".split()
     bleacher = {"Iris-setosa": 9, "Iris-versicolor": 3, "Iris-virginica": 4}
-    data = [[i, line.split(",")[-1]] + [float(p) for p in line.split(",")[:-1]] for i, line in enumerate(data)]
+    data = [(i, line.split(",")[-1], Wisard.retinify([float(p) for p in line.split(",")[:-1]]))
+            for i, line in enumerate(data)]
 
     w = Wisard(data, 22 * 4, bleach=502, mapper=bleacher, enf=10, sup=1)
     w.main(-3)
