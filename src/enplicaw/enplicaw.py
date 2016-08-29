@@ -16,7 +16,7 @@
 # Você deve ter recebido uma cópia da Licença Pública Geral GNU
 # junto com este programa, se não, veja em <http://www.gnu.org/licenses/>
 
-from random import shuffle, random
+from random import shuffle, random, choice
 import operator
 from constants import PRIMES, DATA
 
@@ -37,9 +37,9 @@ class Wisard:
     """Rede neural sem peso. :ref:`wisard'
     """
 
-    def __init__(self, data, retinasize=3 * 4, bleach=0, mapper={i: i for i in range(4)}, enf=1, sup=0):
+    def __init__(self, data, retinasize=3 * 4, bleach=0, mapper={i: i for i in range(4)}, enf=1, sup=0, unsupervised=False):
         self.data = data
-        self.bleacher, self.enf, self.sup, self.retinasize = mapper, enf, sup, retinasize
+        self.bleacher, self.enf, self.sup, self.retinasize, self.unsupervised = mapper, enf, sup, retinasize, unsupervised
         self.auto_bleach = {}
         self.bleach = bleach
         self.clazzes = list(mapper.keys())
@@ -84,15 +84,39 @@ class Wisard:
         return None
 
     def learn_samples(self):
-        enf, sup, samples = self.enf, self.sup, self.data
+        enf, sup, samples, unsupervised, clazzes = self.enf, self.sup, self.data, self.unsupervised, self.clazzes
         print(samples[0])
         cortices = [(cortex.clazz, cortex.cortex) for cortex in self.cortex]
         for _, sample_clazz, master_retina in samples:
+            if unsupervised:
+                sample_clazz = choice(clazzes)
+                print(sample_clazz)
             if sample_clazz:
                 for clazz, cortex in cortices:
                     for neuron in cortex:
                         neuron[(master_retina[neuron[(0, LGN)]], master_retina[neuron[(1, LGN)]])
                                ] += enf if sample_clazz == clazz else sup if sample_clazz != "N" else 0
+
+    def rank_samples(self):
+        histo_classes = {clazz: [] for clazz in self.clazzes}
+        res = self.classify_samples()
+        [histo_classes[cl].append((s, name)) for name, _, line in res for cl, s in line.items()]
+        ordered_histos = {}
+        ordered_notes = {}
+        ordered_cutter = {}
+        for clazz, histo in histo_classes.items():
+            histo.sort()
+            minh = histo[0][0]
+            ordered_histos[clazz] = [name for _, name in histo]
+            ordered_notes[clazz] = [abs(10*(noteh - note)/note) for (noteh, _), (note, _) in zip(histo, histo[1:])]
+            print(clazz, [name for _, name in histo], [note - minh for note, _ in histo], ordered_notes[clazz])
+            ordered_cutter[clazz] = ordered_notes[clazz].index(max(ordered_notes[clazz]))
+
+        for sample, clazz, _ in self.data:
+            rank = [(histo.index(sample) if histo.index(sample) > ordered_cutter[clazz] else histo.index(sample)//4,
+                     clazz) for clazz, histo in ordered_histos.items()]
+            rank.sort(reverse=True)
+            print(sample, rank)
 
     def classify_samples(self):
         bleach, retinasize, samples = self.bleach, self.retinasize, self.data
@@ -115,6 +139,7 @@ class Wisard:
 
     def main(self, namer=-1):
         global RND
+        histo_classes = {clazz: [] for clazz in self.clazzes}
         clazzes = self.clazzes + ["U"]
         tot = {u[0]: {key: 0 if key != "U" else str(u[0]) + " " + str(u[1]) for key in clazzes} for u in
                self.data}
@@ -123,6 +148,7 @@ class Wisard:
             # shuffle(data)
             RND = primes.pop()
             res = self.run()
+            [histo_classes[cl].append((s, name)) for name, _, line in res for cl, s in line.items()]
             [tot[name].update({cl: tot[name][cl] + s for cl, s in line.items()}) for name, _, line in res]
         total = list(tot.keys())
         total.sort()
@@ -136,7 +162,7 @@ class Wisard:
             val.sort(key=operator.itemgetter(1), reverse=True)
             first, sec, third = val[0][1], val[1][1], val[2][1]
             confidence = min(100 * abs(first - sec) // max(abs(first), 1), 100)
-            conf = confidence if (user == val[0][0][namer:]) or ("e" == user) else -confidence
+            conf = confidence if (user == val[0][0][namer:]) or ("e" == user) else -2*confidence
             secd = min(abs(sec // max(abs(first), 1)) * conf, 100)  # if (user == val[0][0]) or ("e" == user) else 0
             # conf = 100 * abs(first-sec) // max(abs(first), abs(sec))
             # conf = 100 * (max(first, 0)-max(sec, 0)) // first
@@ -146,7 +172,23 @@ class Wisard:
             print("{name: >42} {val} conf: {conf}".format(name=tot[line]["U"] if "U" in tot[line] else "",
                                                           val="".join(["%s:%8.0f " % (a[-3:], b) for a, b in val]),
                                                           conf=conf))
-        print("total confidence %d" % (total_conf // len(total)))
+        print("total confidence %f" % (1.0 * total_conf / len(total)))
+        ordered_histos = {}
+        ordered_notes = {}
+        ordered_cutter = {}
+        for clazz, histo in histo_classes.items():
+            histo.sort()
+            minh = histo[0][0]
+            ordered_histos[clazz] = [name for _, name in histo]
+            ordered_notes[clazz] = [abs(10*(noteh - note)/note) for (noteh, _), (note, _) in zip(histo, histo[1:])]
+            print(clazz, [name for _, name in histo], [note - minh for note, _ in histo], ordered_notes[clazz])
+            ordered_cutter[clazz] = ordered_notes[clazz].index(max(ordered_notes[clazz]))
+
+        for sample in range(148):
+            rank = [(histo.index(sample) if histo.index(sample) > ordered_cutter[clazz] else histo.index(sample)//4,
+                     clazz) for clazz, histo in ordered_histos.items()]
+            rank.sort(reverse=True)
+            print(sample, rank)
         return
 
     def retinify_samples(self, samples):
@@ -264,17 +306,17 @@ def plot(data):
     plt.show()
 
 
-def main(data):
+def main(data, unsupervised=False):
     global RND
     cls = "Iris-setosa Iris-versicolor Iris-virginica".split()
-    bleacher = {"Iris-setosa": 9, "Iris-versicolor": 3, "Iris-virginica": 4}
     data = [(i, line.split(",")[-1], Wisard.retinify([float(p) for p in line.split(",")[:-1]]))
             for i, line in enumerate(data)]
 
-    w = Wisard(data, 22 * 4, bleach=502, mapper=bleacher, enf=10, sup=1)
+    bleacher = {"Iris-setosa": 280, "Iris-versicolor": 85, "Iris-virginica": 30}
+    w = Wisard(data, 22 * 4, bleach=2458, mapper=bleacher, enf=100, sup=10, unsupervised=unsupervised)
     w.main(-3)
 
 if __name__ == '__main__':
-    main(DATA)
+    main(DATA, unsupervised=True)
     # Wisard.sense_domain(DATA)
     # Wisard().unsupervised_learn(DATA)
