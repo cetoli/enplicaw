@@ -37,9 +37,11 @@ class Wisard:
     """Rede neural sem peso. :ref:`wisard'
     """
 
-    def __init__(self, data, retinasize=3 * 4, bleach=0, mapper={i: i for i in range(4)}, enf=1, sup=0, unsupervised=False):
+    def __init__(self, data, retinasize=3 * 4, bleach=0, mapper={i: i for i in range(4)}, enf=1, sup=0,
+                 unsupervised=False):
         self.data = data
-        self.bleacher, self.enf, self.sup, self.retinasize, self.unsupervised = mapper, enf, sup, retinasize, unsupervised
+        self.bleacher, self.enf, self.sup, self.retinasize, self.unsupervised = \
+            mapper, enf, sup, retinasize, unsupervised
         self.auto_bleach = {}
         self.bleach = bleach
         self.clazzes = list(mapper.keys())
@@ -108,15 +110,19 @@ class Wisard:
             histo.sort()
             minh = histo[0][0]
             ordered_histos[clazz] = [name for _, name in histo]
-            ordered_notes[clazz] = [abs(10*(noteh - note)/note) for (noteh, _), (note, _) in zip(histo, histo[1:])]
+            ordered_notes[clazz] = [abs(10*(noteh - note)/max(1, note))
+                                    for (noteh, _), (note, _) in zip(histo, histo[1:])]
             print(clazz, [name for _, name in histo], [note - minh for note, _ in histo], ordered_notes[clazz])
             ordered_cutter[clazz] = ordered_notes[clazz].index(max(ordered_notes[clazz]))
 
+        ranker = {}
         for sample, clazz, _ in self.data:
             rank = [(histo.index(sample) if histo.index(sample) > ordered_cutter[clazz] else histo.index(sample)//4,
                      clazz) for clazz, histo in ordered_histos.items()]
             rank.sort(reverse=True)
+            ranker[sample] = [clazz, rank[0][1]]
             print(sample, rank)
+        return ranker
 
     def classify_samples(self):
         bleach, retinasize, samples = self.bleach, self.retinasize, self.data
@@ -190,6 +196,11 @@ class Wisard:
             rank.sort(reverse=True)
             print(sample, rank)
         return
+
+    def unsupervised_class(self, namer=-1):
+        self.reset_brain()
+        self.learn_samples()
+        self.rank_samples()
 
     def retinify_samples(self, samples):
         [self.retinify(sample[2:]) for sample in samples]
@@ -312,9 +323,12 @@ def main(data, unsupervised=False):
     data = [(i, line.split(",")[-1], Wisard.retinify([float(p) for p in line.split(",")[:-1]]))
             for i, line in enumerate(data)]
 
-    bleacher = {"Iris-setosa": 280, "Iris-versicolor": 85, "Iris-virginica": 30}
-    w = Wisard(data, 22 * 4, bleach=2458, mapper=bleacher, enf=100, sup=10, unsupervised=unsupervised)
-    w.main(-3)
+    bleacher = {"Iris-setosa": 0, "Iris-versicolor": 0, "Iris-virginica": 0}
+    w = Wisard(data, 22 * 4, bleach=0, mapper=bleacher, enf=1, sup=0, unsupervised=unsupervised)
+    # bleacher = {"Iris-setosa": 280, "Iris-versicolor": 85, "Iris-virginica": 30}
+    # w = Wisard(data, 22 * 4, bleach=2458, mapper=bleacher, enf=100, sup=10, unsupervised=unsupervised)
+    # w.main(-3)
+    w.unsupervised_class()
 
 if __name__ == '__main__':
     main(DATA, unsupervised=True)
